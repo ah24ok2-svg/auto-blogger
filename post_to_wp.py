@@ -28,6 +28,9 @@ def get_or_create_tags(tag_names: list[str]) -> list[int]:
             params={"search": name},
             headers=headers
         )
+        if res.status_code != 200 or not res.text.strip():
+            print(f"  タグ取得スキップ ({res.status_code}): {name}")
+            continue
         tags = res.json()
         existing = [t for t in tags if t["name"] == name]
 
@@ -39,7 +42,10 @@ def get_or_create_tags(tag_names: list[str]) -> list[int]:
                 json={"name": name},
                 headers=headers
             )
-            tag_ids.append(res.json()["id"])
+            if res.status_code in (200, 201):
+                tag_ids.append(res.json()["id"])
+            else:
+                print(f"  タグ作成スキップ ({res.status_code}): {name}")
 
     return tag_ids
 
@@ -113,7 +119,9 @@ def post_article(article: dict, status: str = "publish") -> dict:
         json=payload,
         headers=headers,
     )
-    res.raise_for_status()
+    if not res.ok:
+        print(f"  投稿エラー ({res.status_code}): {res.text[:200]}")
+        res.raise_for_status()
     return res.json()
 
 
